@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Hood Reservation</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; color: #333; margin: 0; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    h1 { font-size: 24px; color: #2c405a; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+    
+    .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .controls select, .controls button { padding: 8px 12px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; }
+    .controls select { min-width: 200px; font-weight: bold; color: #2c405a; }
+    .week-nav { display: flex; align-items: center; gap: 15px; font-weight: bold; font-size: 18px; color: #2c405a; }
+    
+    table { width: 100%; border-collapse: collapse; text-align: center; }
+    th { background-color: #34495e; color: #ffffff; padding: 12px; border: 1px solid #fff; font-size: 15px; }
+    th.time-col { background-color: #e2e8f0; color: #333; width: 120px; }
+    td { border: 1px solid #e2e8f0; padding: 0; height: 45px; position: relative; }
+    
+    /* 預約格子樣式參考圖片 */
+    .slot { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 15px; transition: 0.2s; }
+    .available { background-color: #e8f8f5; color: #16a085; cursor: pointer; font-weight: bold; }
+    .available:hover { background-color: #d1f2eb; }
+    .booked { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; }
+    .my-booking { background-color: #dbeafe; color: #1e3a8a; font-weight: bold; }
+    
+    .loading-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:999; align-items:center; justify-content:center; font-size:24px; font-weight:bold; color:#2c405a; }
+  </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">讀取資料中...</div>
+
+<div class="container">
+  <h1>Lab Hood Reservation</h1>
+  
+  <div class="controls">
+    <div>
+      <label for="hoodSelect" style="font-weight: bold; margin-right: 10px;">選擇設備：</label>
+      <select id="hoodSelect" onchange="renderTable()">
+        <option value="7F Culture room_Left">7F Culture room_Left</option>
+        <option value="7F Culture room_Right">7F Culture room_Right</option>
+        <option value="6F Culture room">6F Culture room</option>
+        <option value="8F RNA hood">8F RNA hood</option>
+        <option value="8F Culture room">8F Culture room</option>
+      </select>
+    </div>
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">&#8592; 上一週</button>
+      <span id="weekLabel">2026/08/17 - 2026/08/23</span>
+      <button onclick="changeWeek(1)">下一週 &#8594;</button>
+    </div>
+  </div>
+
+  <table id="scheduleTable">
+    <thead>
+      <tr id="tableHeader">
+        <th class="time-col">時間 / 日期</th>
+        <!-- JS 會動態生成週一到週日的標題 -->
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <!-- JS 會動態生成 06:00 ~ 23:00 的時段 -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // ================= 參數設定 =================
+  const API_URL = "https://script.google.com/macros/s/AKfycby9CM2XWkIfZmDOuo95qroIAisjl0UrOF8ABXmqk7at5UQKlqCanaKycX-kXVGCi_zi/exec"; 
+  const startHour = 6;  // 06:00 開始
+  const endHour = 23;   // 23:00 結束
+  
+  let currentMonday = getMonday(new Date());
+  let allBookings = []; // 暫存所有預約資料
+
+  // ================= 初始化 =================
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchData();
+  });
+
+  // 取得目前週一的日期
+  function getMonday(d) {
+    d = new Date(d);
+    var day = d.getDay(), diff = d.getDate() - day + (day == 0 ? -6 : 1); 
+    return new Date(d.setDate(diff));
+  }
+
+  // 格式化日期為 YYYY-MM-DD
+  function formatDate(d) {
+    let month = '' + (d.getMonth() + 1), day = '' + d.getDate(), year = d.getFullYear();
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+    return [year, month, day].join('-');
+  }
+
+  // 切換週次
+  function changeWeek(offset) {
+    currentMonday.setDate(currentMonday.getDate() + (offset * 7));
+    renderTable();
+  }
+
+  // ================= 讀取與渲染 =================
+  function fetchData() {
+    document.getElementById("loading").style.display = "flex";
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => {
+        allBookings = data;
+        renderTable();
+      })
+      .catch(err => alert("讀取資料失敗，請重新整理頁面。"))
+      .finally(() => {
+        document.getElementById("loading").style.display = "none";
+      });
+  }
+
+  function renderTable() {
+    const selectedHood = document.getElementById("hoodSelect").value;
+    const headerRow = document.getElementById("tableHeader");
+    const tbody = document.getElementById("tableBody");
+    
+    // 更新表頭日期 (週一到週日)
+    headerRow.innerHTML = '<th class="time-col">時間 / 日期</th>';
+    let weekDays = [];
+    const daysName = ['一', '二', '三', '四', '五', '六', '日'];
+    
+    for (let i = 0; i < 7; i++) {
+      let d = new Date(currentMonday);
+      d.setDate(currentMonday.getDate() + i);
+      let dateStr = formatDate(d);
+      weekDays.push(dateStr);
+      
+      let th = document.createElement("th");
+      th.innerHTML = `${d.getMonth()+1}/${d.getDate()} (週${daysName[i]})`;
+      headerRow.appendChild(th);
+    }
+    
+    // 更新週次標籤
+    document.getElementById("weekLabel").innerText = `${weekDays[0]} ~ ${weekDays[6]}`;
+
+    // 建立時間列 (06:00 - 23:00)
+    tbody.innerHTML = '';
+    for (let h = startHour; h < endHour; h++) {
+      let timeLabel = `${String(h).padStart(2, '0')}:00 - ${String(h+1).padStart(2, '0')}:00`;
+      let timeKey = `${String(h).padStart(2, '0')}:00`;
+      
+      let tr = document.createElement("tr");
+      
+      // 第一欄：時間
+      let tdTime = document.createElement("td");
+      tdTime.className = "time-col";
+      tdTime.style.backgroundColor = "#e2e8f0";
+      tdTime.style.fontWeight = "bold";
+      tdTime.innerText = timeLabel;
+      tr.appendChild(tdTime);
+
+      // 其他七欄：週一至週日
+      for (let i = 0; i < 7; i++) {
+        let dateKey = weekDays[i];
+        let td = document.createElement("td");
+        
+        // 檢查此格是否已被預約
+        let booking = allBookings.find(b => b.date === dateKey && b.time === timeKey && b.hood === selectedHood);
+        
+        let slotDiv = document.createElement("div");
+        if (booking) {
+          slotDiv.className = "slot booked";
+          slotDiv.innerText = booking.user;
+        } else {
+          slotDiv.className = "slot available";
+          slotDiv.innerText = "預約";
+          // 綁定點擊事件
+          slotDiv.onclick = () => bookSlot(dateKey, timeKey, selectedHood);
+        }
+        
+        td.appendChild(slotDiv);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  // ================= 預約動作 =================
+  function bookSlot(date, time, hood) {
+    const userName = prompt(`正在預約 ${hood}\n日期：${date} \n時間：${time}\n\n請輸入您的姓名：`);
+    
+    if (userName === null || userName.trim() === "") return;
+    
+    document.getElementById("loading").style.display = "flex";
+    document.getElementById("loading").innerText = "預約送出中...";
+
+    const payload = { date: date, time: time, hood: hood, user: userName.trim() };
+
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.status === "success") {
+        // 預約成功，直接更新本地資料並重新渲染
+        allBookings.push(payload);
+        renderTable();
+      } else {
+        alert("預約失敗：" + res.message);
+        fetchData(); // 有人搶先，重新讀取最新資料
+      }
+    })
+    .catch(err => alert("連線錯誤，請稍後再試。"))
+    .finally(() => {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("loading").innerText = "讀取資料中...";
+    });
+  }
+</script>
+</body>
+</html>
