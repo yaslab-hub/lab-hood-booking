@@ -9,24 +9,44 @@
     .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     h1 { font-size: 24px; color: #2c405a; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
     
-    .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-    .controls select, .controls button { padding: 8px 12px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; }
-    .controls select { min-width: 200px; font-weight: bold; color: #2c405a; }
-    .week-nav { display: flex; align-items: center; gap: 15px; font-weight: bold; font-size: 18px; color: #2c405a; }
+    .controls { display: flex; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .controls input { padding: 8px 12px; font-size: 16px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: bold; color: #2c405a; }
     
-    table { width: 100%; border-collapse: collapse; text-align: center; }
+    .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; min-width: 900px; border-collapse: collapse; text-align: center; }
     th { background-color: #34495e; color: #ffffff; padding: 12px; border: 1px solid #fff; font-size: 15px; }
-    th.time-col { background-color: #e2e8f0; color: #333; width: 120px; }
+    th, td { white-space: nowrap; }
+    th { min-width: 150px; }
+    th.time-col, td.time-col { background-color: #e2e8f0; color: #333; min-width: 125px; width: 125px; }
     td { border: 1px solid #e2e8f0; padding: 0; height: 45px; position: relative; }
     
     /* 預約格子樣式參考圖片 */
     .slot { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-size: 15px; transition: 0.2s; }
     .available { background-color: #e8f8f5; color: #16a085; cursor: pointer; font-weight: bold; }
     .available:hover { background-color: #d1f2eb; }
-    .booked { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; }
+    .booked { background-color: #fde2e2; color: #b42318; cursor: pointer; font-weight: bold; }
+    .booked:hover { background-color: #fbcaca; }
     .my-booking { background-color: #dbeafe; color: #1e3a8a; font-weight: bold; }
+
+    .rules { margin-top: 24px; padding: 24px 30px; background: #fff8e7; border-left: 8px solid #f39c12; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .rules h2 { margin: 0 0 18px; color: #d35400; font-size: 24px; }
+    .rules ol { margin: 0; padding-left: 28px; }
+    .rules li { margin: 12px 0; font-size: 18px; line-height: 1.5; }
     
     .loading-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:999; align-items:center; justify-content:center; font-size:24px; font-weight:bold; color:#2c405a; }
+
+    @media (max-width: 600px) {
+      body { padding: 8px; }
+      .container { padding: 14px 10px; border-radius: 6px; }
+      h1 { font-size: 22px; padding-bottom: 12px; }
+      .controls { align-items: flex-start; flex-direction: column; gap: 6px; }
+      .controls label { margin-right: 0 !important; }
+      .controls input { width: 100%; box-sizing: border-box; font-size: 16px; }
+      th { padding: 10px 8px; font-size: 14px; }
+      td { height: 48px; }
+      .slot { font-size: 14px; }
+      .loading-overlay { font-size: 20px; }
+    }
   </style>
 </head>
 <body>
@@ -37,34 +57,33 @@
   <h1>Lab Hood Reservation</h1>
   
   <div class="controls">
-    <div>
-      <label for="hoodSelect" style="font-weight: bold; margin-right: 10px;">選擇設備：</label>
-      <select id="hoodSelect" onchange="renderTable()">
-        <option value="5F Culture room_Left">7F Culture room_Left</option>
-        <option value="5F Culture room_Right">7F Culture room_Right</option>
-        <option value="6F Culture room">6F Culture room</option>
-        <option value="8F RNA hood">8F RNA hood</option>
-        <option value="8F Culture room">8F Culture room</option>
-      </select>
-    </div>
-    <div class="week-nav">
-      <button onclick="changeWeek(-1)">&#8592; 上一週</button>
-      <span id="weekLabel">2026/08/17 - 2026/08/23</span>
-      <button onclick="changeWeek(1)">下一週 &#8594;</button>
-    </div>
+    <label for="dateSelect" style="font-weight: bold; margin-right: 10px;">選擇日期：</label>
+    <input id="dateSelect" type="date" onchange="renderTable()">
   </div>
 
-  <table id="scheduleTable">
-    <thead>
-      <tr id="tableHeader">
-        <th class="time-col">時間 / 日期</th>
-        <!-- JS 會動態生成週一到週日的標題 -->
-      </tr>
-    </thead>
-    <tbody id="tableBody">
-      <!-- JS 會動態生成 06:00 ~ 23:00 的時段 -->
-    </tbody>
-  </table>
+  <div class="table-wrapper">
+    <table id="scheduleTable">
+      <thead>
+        <tr id="tableHeader">
+          <th class="time-col">Date / Hood</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- JS 會動態生成 06:00 ~ 23:00 的時段 -->
+      </tbody>
+    </table>
+  </div>
+
+  <section class="rules" aria-labelledby="rules-title">
+    <h2 id="rules-title">Rules &amp; Reminders</h2>
+    <ol>
+      <li>Please make sure you show up at the time you&rsquo;ve booked!</li>
+      <li>Update right away if your plans change.</li>
+      <li>We should bring all necessary materials from the 7F culture room.</li>
+      <li>Do not leave anything behind once you finish your experiments, this includes trash and waste.</li>
+      <li>Make sure the culture room is clean before you leave the room!</li>
+    </ol>
+  </section>
 </div>
 
 <script>
@@ -73,20 +92,20 @@
   const startHour = 6;  // 06:00 開始
   const endHour = 23;   // 23:00 結束
   
-  let currentMonday = getMonday(new Date());
+  const hoods = [
+    "5F Culture room_Left",
+    "5F Culture room_Right",
+    "6F Culture room",
+    "8F RNA hood",
+    "8F Culture room"
+  ];
   let allBookings = []; // 暫存所有預約資料
 
   // ================= 初始化 =================
   document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("dateSelect").value = formatDate(new Date());
     fetchData();
   });
-
-  // 取得目前週一的日期
-  function getMonday(d) {
-    d = new Date(d);
-    var day = d.getDay(), diff = d.getDate() - day + (day == 0 ? -6 : 1); 
-    return new Date(d.setDate(diff));
-  }
 
   // 格式化日期為 YYYY-MM-DD
   function formatDate(d) {
@@ -96,50 +115,59 @@
     return [year, month, day].join('-');
   }
 
-  // 切換週次
-  function changeWeek(offset) {
-    currentMonday.setDate(currentMonday.getDate() + (offset * 7));
-    renderTable();
-  }
-
   // ================= 讀取與渲染 =================
   function fetchData() {
     document.getElementById("loading").style.display = "flex";
-    fetch(API_URL)
-      .then(res => res.json())
+    fetchJson(API_URL)
       .then(data => {
+        if (!Array.isArray(data)) {
+          throw new Error("API 回傳格式不是預約資料陣列");
+        }
         allBookings = data;
         renderTable();
       })
-      .catch(err => alert("讀取資料失敗，請重新整理頁面。"))
+      .catch(err => {
+        console.error("API 讀取錯誤：", err);
+        alert("讀取資料失敗：" + err.message);
+      })
       .finally(() => {
         document.getElementById("loading").style.display = "none";
       });
   }
 
+  function fetchJson(url, options) {
+    return fetch(url, options).then(response => response.text().then(text => {
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch (error) {
+        const backendError = text.match(/(TypeError:[\s\S]*?)(?:<|$)/i);
+        const message = backendError
+          ? "Google Apps Script 錯誤：" + backendError[1].trim()
+          : "API 沒有回傳 JSON，可能是部署權限或後端設定錯誤";
+        throw new Error(message);
+      }
+
+      if (!response.ok) {
+        throw new Error("API HTTP 錯誤：" + response.status);
+      }
+
+      return data;
+    }));
+  }
+
   function renderTable() {
-    const selectedHood = document.getElementById("hoodSelect").value;
+    const selectedDate = document.getElementById("dateSelect").value;
     const headerRow = document.getElementById("tableHeader");
     const tbody = document.getElementById("tableBody");
     
-    // 更新表頭日期 (週一到週日)
-    headerRow.innerHTML = '<th class="time-col">時間 / 日期</th>';
-    let weekDays = [];
-    const daysName = ['一', '二', '三', '四', '五', '六', '日'];
-    
-    for (let i = 0; i < 7; i++) {
-      let d = new Date(currentMonday);
-      d.setDate(currentMonday.getDate() + i);
-      let dateStr = formatDate(d);
-      weekDays.push(dateStr);
-      
+    headerRow.innerHTML = '<th class="time-col">Date / Hood</th>';
+    hoods.forEach(hood => {
       let th = document.createElement("th");
-      th.innerHTML = `${d.getMonth()+1}/${d.getDate()} (週${daysName[i]})`;
+      th.innerText = hood;
       headerRow.appendChild(th);
-    }
-    
-    // 更新週次標籤
-    document.getElementById("weekLabel").innerText = `${weekDays[0]} ~ ${weekDays[6]}`;
+    });
 
     // 建立時間列 (06:00 - 23:00)
     tbody.innerHTML = '';
@@ -157,33 +185,74 @@
       tdTime.innerText = timeLabel;
       tr.appendChild(tdTime);
 
-      // 其他七欄：週一至週日
-      for (let i = 0; i < 7; i++) {
-        let dateKey = weekDays[i];
+      hoods.forEach(hood => {
         let td = document.createElement("td");
         
         // 檢查此格是否已被預約
-        let booking = allBookings.find(b => b.date === dateKey && b.time === timeKey && b.hood === selectedHood);
+        let booking = allBookings.find(b => b.date === selectedDate && b.time === timeKey && b.hood === hood);
         
         let slotDiv = document.createElement("div");
         if (booking) {
           slotDiv.className = "slot booked";
           slotDiv.innerText = booking.user;
+          slotDiv.title = "點擊取消預約";
+          slotDiv.onclick = () => cancelBooking(selectedDate, timeKey, hood, booking);
         } else {
           slotDiv.className = "slot available";
           slotDiv.innerText = "預約";
           // 綁定點擊事件
-          slotDiv.onclick = () => bookSlot(dateKey, timeKey, selectedHood);
+          slotDiv.onclick = () => bookSlot(selectedDate, timeKey, hood);
         }
         
         td.appendChild(slotDiv);
         tr.appendChild(td);
-      }
+      });
       tbody.appendChild(tr);
     }
   }
 
   // ================= 預約動作 =================
+  function cancelBooking(date, time, hood, booking) {
+    const shouldCancel = confirm(
+      `確定要取消 ${booking.user} 的預約嗎？\n\n設備：${hood}\n日期：${date}\n時間：${time}`
+    );
+
+    if (!shouldCancel) return;
+
+    document.getElementById("loading").style.display = "flex";
+    document.getElementById("loading").innerText = "取消預約中...";
+
+    const payload = {
+      action: "cancel",
+      date: date,
+      time: time,
+      hood: hood,
+      user: booking.user
+    };
+
+    fetchJson(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })
+      .then(res => {
+        if (res.status === "success") {
+          allBookings = allBookings.filter(item => item !== booking);
+          renderTable();
+        } else {
+          alert("取消預約失敗：" + res.message);
+          fetchData();
+        }
+      })
+      .catch(err => {
+        console.error("API 取消預約錯誤：", err);
+        alert("取消預約連線錯誤：" + err.message);
+      })
+      .finally(() => {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("loading").innerText = "讀取資料中...";
+      });
+  }
+
   function bookSlot(date, time, hood) {
     const userName = prompt(`正在預約 ${hood}\n日期：${date} \n時間：${time}\n\n請輸入您的姓名：`);
     
@@ -194,11 +263,10 @@
 
     const payload = { date: date, time: time, hood: hood, user: userName.trim() };
 
-    fetch(API_URL, {
+    fetchJson(API_URL, {
       method: "POST",
       body: JSON.stringify(payload)
     })
-    .then(res => res.json())
     .then(res => {
       if (res.status === "success") {
         // 預約成功，直接更新本地資料並重新渲染
@@ -209,7 +277,10 @@
         fetchData(); // 有人搶先，重新讀取最新資料
       }
     })
-    .catch(err => alert("連線錯誤，請稍後再試。"))
+    .catch(err => {
+      console.error("API 預約錯誤：", err);
+      alert("連線錯誤：" + err.message);
+    })
     .finally(() => {
       document.getElementById("loading").style.display = "none";
       document.getElementById("loading").innerText = "讀取資料中...";
