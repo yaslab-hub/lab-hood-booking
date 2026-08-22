@@ -37,16 +37,25 @@
 
     @media (max-width: 600px) {
       body { padding: 8px; }
-      .container { padding: 14px 10px; border-radius: 6px; }
+      .container { padding: 14px 10px; border-radius: 6px; overflow-x: clip; }
       h1 { font-size: 22px; padding-bottom: 12px; }
-      .controls { align-items: flex-start; flex-direction: column; gap: 6px; }
-      .controls { width: 100%; min-width: 0; }
-      .controls label { margin-right: 0 !important; }
-      .controls input { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; font-size: 16px; display: block; }
+      .controls { display: block; width: 100%; min-width: 0; margin-bottom: 16px; }
+      .controls label { display: block; margin: 0 0 6px 0 !important; }
+      #dateSelect { display: block; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; font-size: 16px; }
       th { padding: 10px 8px; font-size: 14px; }
       td { height: 48px; }
       .slot { font-size: 14px; }
       .loading-overlay { font-size: 20px; }
+    }
+
+    @supports (-webkit-touch-callout: none) {
+      @media (max-width: 600px) {
+        #dateSelect {
+          width: -webkit-fill-available;
+          -webkit-appearance: none;
+          appearance: none;
+        }
+      }
     }
   </style>
 </head>
